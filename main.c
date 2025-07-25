@@ -1,93 +1,77 @@
 #include "main.h"
 
-typedef enum ultradir{
-    LEFT, RIGHT, REAR
-}UltraDir;
+float Kp = 0.1;
+float Ki = 0.0;
+float Kd = 0.0;
+
+float error = 0;
+float last_error = 0;
+float integral = 0;
+float derivative = 0;
+
+int steering_output = 0;
+
+#define FILTER_SIZE 5
+uint32 readings[FILTER_SIZE] = {0};
+int read_index = 0;
+uint32 total = 0;
+uint32 filtered_distance = 0;
+
+uint32 previous_filtered_distance = 0;
+uint32 current_filtered_distance = 0;
 
 
-void uInit (void)
-{
-    /* Init left ultrasonic pin */
-    MODULE_P10.IOCR4.B.PC5 = 0x10; /* Set TRIG (P02.4) Pin to output */
-    MODULE_P10.IOCR0.B.PC3 = 0x02; /* Set ECHO (P02.6) Pin to input */
-
-    /* Init right Ultrasonic Pin */
-    MODULE_P10.IOCR0.B.PC1 = 0x10; /* Set TRIG (P13.2) Pin to output */
-    MODULE_P10.IOCR0.B.PC2 = 0x02; /* Set ECHO (P13.1) Pin to input */
-}
-
-
-void sendTrigger_ (UltraDir dir)
-{
-
-    if (dir == LEFT)
-    {
-        MODULE_P10.OUT.B.P5 = 1;
-        delay_us(10);
-        MODULE_P10.OUT.B.P5 = 0;
+int dis;
+uint32 getFilteredDistance(UltraDir dir) {
+    total = total - readings[read_index];
+    dis = getDistanceByUltra(dir);
+    while(dis < 0){
+        dis = getDistanceByUltra(dir);
     }
-    else if (dir == RIGHT)
-    {
-        MODULE_P10.OUT.B.P1 = 1;
-        delay_us(10);
-        MODULE_P10.OUT.B.P1 = 0;
+    readings[read_index] = dis;
+    total = total + readings[read_index];
+    read_index = (read_index + 1) % FILTER_SIZE;
+    return total / FILTER_SIZE;
+}
+
+int main() {
+    Asclin0_InitUart();
+    ultrasonicInit();
+
+    for(int i=0; i<FILTER_SIZE; i++) {
+        getFilteredDistance(ULT_LEFT);
+        delay_ms(50);
     }
 
-}
+    previous_filtered_distance = getFilteredDistance(ULT_LEFT);
+    delay_ms(50);
 
+    int cap = 0;
+    int button;
+    int prevState = 0;
 
+    MODULE_P00.IOCR4.B.PC5 = 0x10;
 
+    while(1) {
+        MODULE_P00.OUT.B.P5 = 1;
+        button = MODULE_P00.IN.B.P7;
+        if(prevState == 1 && button == 0){
+            cap = !cap;
+        }
 
-uint32 getDistance_ (UltraDir dir)
-{
-    uint32 start, end;
-    sendTrigger_(dir);
-    if(dir == LEFT)  while (MODULE_P10.IN.B.P3 == 0);
-    if(dir == RIGHT) while (MODULE_P10.IN.B.P2 == 0);
-    start = MODULE_STM0.TIM0.B.STM_31_0;
-    if(dir == LEFT)  while (MODULE_P10.IN.B.P3 == 1);
-    if(dir == RIGHT) while (MODULE_P10.IN.B.P2 == 1);
-    end = MODULE_STM0.TIM0.B.STM_31_0;
-    return end - start;
-}
+        current_filtered_distance = getFilteredDistance(ULT_LEFT);
+        error = (float)previous_filtered_distance - (float)current_filtered_distance;
+        integral = integral + error;
+        derivative = error - last_error;
+        steering_output = (int)(Kp * error + Ki * integral + Kd * derivative);
+        if(cap){
+            MODULE_P00.OUT.B.P5 = 0;
+            my_printf("Err:%.1f, integral: %.1f, derivative: %.1f, Steer:%d\n", error, integral, derivative, steering_output);
+        }
+        last_error = error;
+        previous_filtered_distance = current_filtered_distance;
 
-
-
-
-char buf[100];
-void bluetoothCommand(){
-    my_scanf("%s", buf);
-    my_printf("%s\n", buf);
-    Bluetooth_ATCommand(buf);
-}
-
-
-//int main ()
-//{
-//    SystemInit();
-//    uInit();
-//    int distance;
-//    Motor_stopChA();
-//    Motor_stopChB();
-//    while (1)
-//    {
-//
-//        sendTrigger_(RIGHT);
-//        distance = getDistance_(RIGHT) / 1000 / 3;
-//        my_printf("Distance of RIGHT: %d\n", distance);
-//        delay_ms(200);
-//    }
-//}
-
-
-int main(){
-    SystemInit();
-//    uInit();
-    // LEFT
-    // RIGHT
-    while(1){
-        Motor_movChA_PWM(30, 1);
-        Motor_movChB_PWM(30, 1);
+        prevState = button;
+        delay_ms(50);
     }
 }
-

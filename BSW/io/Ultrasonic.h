@@ -8,10 +8,24 @@
 #ifndef BSW_IO_ULTRASONIC_H_
 #define BSW_IO_ULTRASONIC_H_
 
-void Ultrasonics_Init(void);
-void Ultrasonic_Send_Trigger();
-void eru_Init();
-void ult_eru ();
-void trigger_timer_init(void);
+typedef struct
+{
+    Ifx_P *port;
+    uint8 pinIndex;
+} GpioPin;
+
+typedef struct
+{
+    GpioPin trigger;
+    GpioPin echo;
+} UltPin;
+
+typedef enum ultradir
+{
+    ULT_LEFT, ULT_RIGHT, ULT_REAR, ULT_SENSORS_NUM
+} UltraDir;
+
+void ultrasonicInit (void);
+int getDistanceByUltra (UltraDir dir);
 
 #endif /* BSW_IO_ULTRASONIC_H_ */

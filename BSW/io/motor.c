@@ -3,6 +3,9 @@
 
 void Motor_Init(void)
 {
+    MODULE_P10.IOCR0.B.PC1 = 0x10; // Motor A DIR
+    MODULE_P10.IOCR0.B.PC2 = 0x10; // Motor A DIR
+
     MODULE_P02.IOCR4.B.PC7 = 0x10;  // PWM A Break
     MODULE_P02.IOCR4.B.PC6 = 0x10;  // PWM B Break
 
