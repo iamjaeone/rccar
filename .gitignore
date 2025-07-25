@@ -1,0 +1,44 @@
+# AURIX Development Studio build artifacts
+*/build/
+*/output/
+*/bin/
+*/Debug/
+*/Release/
+*.axf
+*.map
+*.elf
+*.hex
+*.o
+*.d
+*.lst
+*.log
+*.srec
+*.a
+
+# ADS metadata (project-specific temporary files)
+*.dep
+*.browse
+*.db
+*.bak
+*.sdf
+*.suo
+*.uvopt
+*.uvoptx
+*.uvprojx
+*.uvguix.*
+
+# Backup and temporary files
+*~
+*.tmp
+*.swp
+.DS_Store
+Thumbs.db
+
+# ADS internal project files (optional)
+.settings/
+.cproject
+.project
+
+# If you're using Eclipse plugins or workspace-scoped config:
+.metadata/
+
